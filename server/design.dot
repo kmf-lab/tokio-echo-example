@@ -1,0 +1,43 @@
+digraph EchoServer {
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_server {
+    label="Tokio Echo Server (Actor Model)";
+    style=rounded;
+    color=gray70;
+
+    ConnectionService [label="ConnectionService\n(Accepts TCP connections)", fillcolor=lightblue];
+    EchoService0 [label="EchoService Worker 0\n(Manages client sessions)", fillcolor=lightyellow];
+    EchoService1 [label="EchoService Worker 1\n(Manages client sessions)", fillcolor=lightyellow];
+    // more workers would be similar
+    }
+
+    Client [label="TCP Clients", shape=oval, fillcolor=white];
+
+    // Channels
+    subgraph cluster_channels {
+    label="Tokio mpsc Channels";
+    color=gray80;
+    style=dashed;
+    worker_ch [label="Connection -> Worker\n(mpsc::Sender<Connection>)", shape=note, fillcolor=white];
+    load_ch   [label="LoadUpdate\nWorker -> ConnectionService", shape=note, fillcolor=white];
+    shutdown   [label="oneshot::<()>\n(Test shutdown)", shape=note, fillcolor=white];
+    }
+
+    // Data flow
+    Client -> ConnectionService [label="TCP connect", color=black];
+    ConnectionService -> EchoService0 [label="Connection assignment", color=blue];
+    ConnectionService -> EchoService1 [label="Connection assignment", color=blue];
+
+    EchoService0 -> Client [label="Echo: recv/send lines", color=darkgreen];
+    EchoService1 -> Client [label="Echo: recv/send lines", color=darkgreen];
+
+    EchoService0 -> ConnectionService [label="LoadUpdate", color=red];
+    EchoService1 -> ConnectionService [label="LoadUpdate", color=red];
+
+    shutdown -> ConnectionService [label="Shutdown signal", color=purple, style=dashed];
+
+    // Styling
+    edge [fontname="Helvetica", fontsize=9];
+}

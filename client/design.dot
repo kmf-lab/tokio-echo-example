@@ -1,0 +1,50 @@
+digraph EchoLoadClient {
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10];
+
+    subgraph cluster_client {
+    label="Echo Load Test Client (Actor Model)";
+    style=rounded;
+    color=gray70;
+
+    Main [label="Main (run)\nparse CLI, spawn actors", fillcolor=lightblue];
+    ReportingService [label="ReportingService\n(Aggregates counts,\nlogs throughput)", fillcolor=lightyellow];
+
+    subgraph cluster_clients {
+    label="N parallel ClientService workers";
+    style=dashed;
+    color=gray80;
+    Client0 [label="ClientService #0\n(send/recv loop)", fillcolor=white];
+    Client1 [label="ClientService #1", fillcolor=white];
+    ClientN [label="ClientService #N", fillcolor=white];
+    }
+    }
+
+    Server [label="Echo Server\n(remote)", shape=oval, fillcolor=white];
+
+    // Data flow
+    Main -> Client0 [label="spawn with config", color=blue];
+    Main -> Client1 [label="...", color=blue];
+    Main -> ClientN [label="...", color=blue];
+
+    Main -> ReportingService [label="spawn reporter", color=blue];
+
+    Client0 -> Server [label="TCP connect/send message(s)", color=darkgreen];
+    Client1 -> Server [label="TCP connect/send message(s)", color=darkgreen];
+    ClientN -> Server [label="TCP connect/send message(s)", color=darkgreen];
+
+    Server -> Client0 [label="Echo reply", color=darkgreen];
+    Server -> Client1 [label="Echo reply", color=darkgreen];
+    Server -> ClientN [label="Echo reply", color=darkgreen];
+
+    Client0 -> ReportingService [label="ReportUpdate {count:1}", color=red];
+    Client1 -> ReportingService [label="ReportUpdate {count:1}", color=red];
+    ClientN -> ReportingService [label="ReportUpdate {count:1}", color=red];
+
+    // Notes
+    Updates [label="mpsc::channel<ReportUpdate>", shape=note, fillcolor=white];
+    Client0 -> Updates [style=dotted, arrowhead=none];
+    Client1 -> Updates [style=dotted, arrowhead=none];
+    ClientN -> Updates [style=dotted, arrowhead=none];
+    Updates -> ReportingService [style=dotted, arrowhead=normal];
+}
